@@ -1,0 +1,51 @@
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend_app/core/network/websocket_service.dart';
+import 'package:frontend_app/features/chat/data/models/message_model.dart';
+import 'package:frontend_app/features/chat/data/repositories/chat_repository.dart';
+import 'package:frontend_app/features/chat/logic/cubit/chat_state.dart';
+
+class ChatCubit extends Cubit<ChatState> {
+  final ChatRepository chatRepository;
+  final WebsocketService websocketService;
+
+  ChatCubit(this.chatRepository, this.websocketService) : super(ChatInitial());
+
+  Future<void> initChat({
+    required int otherUserId,
+    required int currentUserId,
+  }) async {
+    emit(const ChatLoading());
+    try {
+      await websocketService.connect(_onMessageReceived);
+      final messages = await chatRepository.getConversation(otherUserId);
+      emit(ChatLoaded(messages, otherUserId));
+    } catch (e) {
+      emit(ChatError(e.toString().replaceFirst('Exception: ', '')));
+    }
+  }
+
+  void _onMessageReceived(Map<String, dynamic> data) {
+    if (state is ChatLoaded) {
+      final currentState = state as ChatLoaded;
+      final newMessage = MessageModel.fromJson(data);
+      final updatedMessages = List<MessageModel>.from(currentState.messages)
+        ..add(newMessage);
+      emit(ChatLoaded(updatedMessages, currentState.otherUserId));
+    }
+  }
+
+  void sendMessage(int receiverId, String content) {
+    websocketService.sendMessage(receiverId, content);
+  }
+
+  void leaveChat() {
+    websocketService.disconnect();
+    emit(const ChatInitial());
+  }
+
+  @override
+  Future<void> close() {
+    websocketService.disconnect();
+    return super.close();
+  }
+}
