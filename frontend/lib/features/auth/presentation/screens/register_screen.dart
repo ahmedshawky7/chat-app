@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:frontend_app/core/network/dio_client.dart';
-import 'package:frontend_app/core/network/websocket_service.dart';
 import 'package:frontend_app/features/auth/logic/cubit/auth_cubit.dart';
 import 'package:frontend_app/features/auth/logic/cubit/auth_state.dart';
-import 'package:frontend_app/features/chat/data/repositories/chat_repository.dart';
-import 'package:frontend_app/features/chat/logic/cubit/chat_cubit.dart';
-import 'package:frontend_app/features/chat/presentation/screens/chat_screen.dart';
 import 'package:frontend_app/features/chat/presentation/screens/user_list_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -40,15 +35,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 .showSnackBar(SnackBar(content: Text(state.message)));
           }
           if (state is AuthSuccess) {
-           Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (_) => UserListScreen(
-      currentUserId: state.id,
-      currentUserEmail: state.email,
-    ),
-  ),
-);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => UserListScreen(
+                  currentUserId: state.id,
+                  currentUserEmail: state.email,
+                ),
+              ),
+            );
           }
         },
         builder: (context, state) {

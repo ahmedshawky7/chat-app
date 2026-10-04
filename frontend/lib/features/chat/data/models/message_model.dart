@@ -34,4 +34,23 @@ class MessageModel {
       isRead: json['isRead'],
     );
   }
+  MessageModel copyWith({
+    int? id,
+    String? content,
+    int? senderId,
+    String? senderUsername,
+    int? receiverId,
+    DateTime? timestamp,
+    bool? isRead,
+  }) {
+    return MessageModel(
+      id: id ?? this.id,
+      content: content ?? this.content,
+      senderId: senderId ?? this.senderId,
+      senderUsername: senderUsername ?? this.senderUsername,
+      receiverId: receiverId ?? this.receiverId,
+      timestamp: timestamp ?? this.timestamp,
+      isRead: isRead ?? this.isRead,
+    );
+  }
 }

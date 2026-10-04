@@ -28,4 +28,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             "WHERE m.receiver.id = :receiverId AND m.isRead = false " +
             "GROUP BY m.sender.id")
     List<Object[]> countUnreadBySender(@Param("receiverId") Long receiverId);
+
+    @Query("SELECT m.id FROM Message m " +
+            "WHERE m.receiver.id = :receiverId " +
+            "AND m.sender.id = :senderId " +
+            "AND m.isRead = false")
+    List<Long> findUnreadMessageIds(@Param("receiverId") Long receiverId, @Param("senderId") Long senderId);
 }

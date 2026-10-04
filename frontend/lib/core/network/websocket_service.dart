@@ -1,17 +1,29 @@
 import 'dart:convert';
+
+import 'package:flutter/material.dart';
 import 'package:frontend_app/core/network/dio_client.dart';
 import 'package:frontend_app/core/utils/token_storage.dart';
 import 'package:stomp_dart_client/stomp_dart_client.dart';
-import 'package:flutter/foundation.dart';
+
 class WebsocketService {
   StompClient? _stompClient;
   final DioClient dioClient;
   Function(Map<String, dynamic>)? _onMessageReceived;
+  Function(Map<String, dynamic>)? _onReadReceipt;
 
   WebsocketService(this.dioClient);
 
-  Future<void> connect(void Function(Map<String, dynamic>) onMessageReceived) async {
+  Future<void> connect(
+    void Function(Map<String, dynamic>) onMessageReceived,
+    void Function(Map<String, dynamic>) onReadReceipt,
+  ) async {
     _onMessageReceived = onMessageReceived;
+    _onReadReceipt = onReadReceipt;
+
+    // لو الاتصال شغال، متعملش اتصال جديد
+    if (_stompClient != null) {
+      return;
+    }
 
     final token = await TokenStorage.getToken();
     if (token == null) {
@@ -33,7 +45,8 @@ class WebsocketService {
   }
 
   void _onConnect(StompFrame frame) {
-    debugPrint('Connected to WebSocket');
+
+    // Subscription 1: messages
     _stompClient!.subscribe(
       destination: '/user/queue/messages',
       callback: (frame) {
@@ -43,13 +56,21 @@ class WebsocketService {
         }
       },
     );
+
+    // Subscription 2: read receipts ← جديد
+    _stompClient!.subscribe(
+      destination: '/user/queue/reads',
+      callback: (frame) {
+        if (frame.body != null && _onReadReceipt != null) {
+          final data = jsonDecode(frame.body!) as Map<String, dynamic>;
+          _onReadReceipt!(data);
+        }
+      },
+    );
   }
 
   void sendMessage(int receiverId, String content) {
-    final message = {
-      'receiverId': receiverId,
-      'content': content,
-    };
+    final message = {'receiverId': receiverId, 'content': content};
     _stompClient!.send(
       destination: '/app/chat.send',
       body: jsonEncode(message),
@@ -64,11 +85,9 @@ class WebsocketService {
   void _onError(dynamic error) {
     debugPrint('WebSocket error: $error');
   }
-
   void _onStompError(StompFrame frame) {
     debugPrint('STOMP error: ${frame.body}');
   }
-
   void _onDisconnect(StompFrame frame) {
     debugPrint('Disconnected: ${frame.body}');
   }

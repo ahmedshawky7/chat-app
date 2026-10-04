@@ -85,10 +85,18 @@ public class ChatService {
     }
 
     @Transactional
-    public void markAsReadByEmail(String email, Long otherUserId) {
+    public List<Long> markAsReadByEmail(String email, Long otherUserId) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        markAsRead(user.getId(), otherUserId);
+
+        // ← جديد: نجيب الـ IDs قبل التحديث
+        List<Long> unreadIds = messageRepository.findUnreadMessageIds(user.getId(), otherUserId);
+
+        if (!unreadIds.isEmpty()) {
+            messageRepository.markMessagesAsRead(user.getId(), otherUserId);
+        }
+
+        return unreadIds;
     }
 
     public String getUserEmailById(Long userId) {
@@ -111,14 +119,19 @@ public class ChatService {
         return getAllUsersExcept(current.getId());
     }
 
-    public Map<Long, Long> getUnreadCountsByEmail(String email) {
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new IllegalArgumentException("User not found"));
-    return messageRepository.countUnreadBySender(user.getId())
-            .stream()
-            .collect(Collectors.toMap(
-                    row -> (Long) row[0],
-                    row -> (Long) row[1]
-            ));
+    public Long getUserIdByEmail(String email) {
+    return userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"))
+            .getId();
 }
+
+    public Map<Long, Long> getUnreadCountsByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return messageRepository.countUnreadBySender(user.getId())
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]));
+    }
 }

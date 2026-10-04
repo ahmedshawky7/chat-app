@@ -127,12 +127,30 @@ class _ChatScreenState extends State<ChatScreen> {
                             children: [
                               Text(message.content),
                               const SizedBox(height: 4),
-                              Text(
-                                _formatTime(message.timestamp),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey[700],
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _formatTime(message.timestamp),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  // ← جديد: علامة الصح (بس لو الرسالة مني)
+                                  if (isMine) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      message.isRead
+                                          ? Icons.done_all
+                                          : Icons.done,
+                                      size: 14,
+                                      color: message.isRead
+                                          ? Colors.blue
+                                          : Colors.grey[700],
+                                    ),
+                                  ],
+                                ],
                               ),
                             ],
                           ),

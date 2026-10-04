@@ -16,7 +16,7 @@ class ChatCubit extends Cubit<ChatState> {
   }) async {
     emit(const ChatLoading());
     try {
-      await websocketService.connect(_onMessageReceived);
+      await websocketService.connect(_onMessageReceived, _onReadReceipt);
       final messages = await chatRepository.getConversation(otherUserId);
       emit(ChatLoaded(messages, otherUserId));
 
@@ -42,6 +42,23 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
+  void _onReadReceipt(Map<String, dynamic> data) {
+    if (state is ChatLoaded) {
+      final currentState = state as ChatLoaded;
+      final List<dynamic> rawIds = data['messageIds'] as List<dynamic>;
+      final Set<int> readIds = rawIds.map((id) => id as int).toSet();
+
+      final updatedMessages = currentState.messages.map((message) {
+        if (message.senderId != currentState.otherUserId &&
+            readIds.contains(message.id)) {
+          return message.copyWith(isRead: true);
+        }
+        return message;
+      }).toList();
+      emit(ChatLoaded(updatedMessages, currentState.otherUserId));
+    }
+  }
+
   void sendMessage(int receiverId, String content) {
     websocketService.sendMessage(receiverId, content);
   }
@@ -56,4 +73,5 @@ class ChatCubit extends Cubit<ChatState> {
     websocketService.disconnect();
     return super.close();
   }
+
 }
