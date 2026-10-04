@@ -1,6 +1,7 @@
 package com.example.chat.controller;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -55,6 +56,10 @@ public ResponseEntity<Void> markAsRead(
 @GetMapping("/users")
 public ResponseEntity<List<UserResponse>> getAllUsers(Authentication authentication) {
     return ResponseEntity.ok(chatService.getAllUsersExceptByEmail(authentication.getName()));
+}
+@GetMapping("/unread-counts")
+public ResponseEntity<Map<Long, Long>> getUnreadCounts(Authentication authentication) {
+    return ResponseEntity.ok(chatService.getUnreadCountsByEmail(authentication.getName()));
 }
 
 }

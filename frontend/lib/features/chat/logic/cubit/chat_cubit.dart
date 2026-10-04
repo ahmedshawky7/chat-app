@@ -19,6 +19,9 @@ class ChatCubit extends Cubit<ChatState> {
       await websocketService.connect(_onMessageReceived);
       final messages = await chatRepository.getConversation(otherUserId);
       emit(ChatLoaded(messages, otherUserId));
+
+      // ← جديد: بعد ما الشات يتحمّل، اعمل mark as read
+      await chatRepository.markAsRead(otherUserId);
     } catch (e) {
       emit(ChatError(e.toString().replaceFirst('Exception: ', '')));
     }
@@ -31,6 +34,11 @@ class ChatCubit extends Cubit<ChatState> {
       final updatedMessages = List<MessageModel>.from(currentState.messages)
         ..add(newMessage);
       emit(ChatLoaded(updatedMessages, currentState.otherUserId));
+
+      // ← علّم كمقروءة فقط لو الرسالة جاية من الطرف التاني
+      if (newMessage.senderId == currentState.otherUserId) {
+        chatRepository.markAsRead(currentState.otherUserId);
+      }
     }
   }
 

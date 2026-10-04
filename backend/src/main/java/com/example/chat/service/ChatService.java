@@ -1,6 +1,8 @@
 package com.example.chat.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -108,4 +110,15 @@ public class ChatService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return getAllUsersExcept(current.getId());
     }
+
+    public Map<Long, Long> getUnreadCountsByEmail(String email) {
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    return messageRepository.countUnreadBySender(user.getId())
+            .stream()
+            .collect(Collectors.toMap(
+                    row -> (Long) row[0],
+                    row -> (Long) row[1]
+            ));
+}
 }
