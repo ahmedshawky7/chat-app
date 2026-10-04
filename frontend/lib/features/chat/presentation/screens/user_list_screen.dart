@@ -32,11 +32,13 @@ class _UserListScreenState extends State<UserListScreen> {
     _future = _loadData();
   }
 
-  Future<(List<UserModel>, Map<int, int>)> _loadData() async {
-    final users = await _chatRepository.getAllUsers();
-    final unread = await _chatRepository.getUnreadCounts();
-    return (users, unread);
-  }
+ Future<(List<UserModel>, Map<int, int>)> _loadData() async {
+  final results = await Future.wait([
+    _chatRepository.getAllUsers(),
+    _chatRepository.getUnreadCounts(),
+  ]);
+  return (results[0] as List<UserModel>, results[1] as Map<int, int>);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -75,59 +77,73 @@ class _UserListScreenState extends State<UserListScreen> {
             return const Center(child: Text('No users found.'));
           }
 
-          return ListView.builder(
-            itemCount: users.length,
-            itemBuilder: (context, index) {
-              final user = users[index];
-              final unreadCount = unreadCounts[user.id] ?? 0;
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _future = _loadData();
+              });
+              await _future; // استنى الـ Future الجديد يخلص
+            },
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final user = users[index];
+                final unreadCount = unreadCounts[user.id] ?? 0;
 
-              return ListTile(
-                leading: CircleAvatar(
-                  child: Text(
-                    user.username.isNotEmpty
-                        ? user.username[0].toUpperCase()
-                        : '?',
+                return ListTile(
+                  leading: CircleAvatar(
+                    child: Text(
+                      user.username.isNotEmpty
+                          ? user.username[0].toUpperCase()
+                          : '?',
+                    ),
                   ),
-                ),
-                title: Text(user.username),
-                subtitle: Text(user.email),
-                trailing: unreadCount > 0
-                    ? Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          unreadCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                  title: Text(user.username),
+                  subtitle: Text(user.email),
+                  trailing: unreadCount > 0
+                      ? Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        )
+                      : null,
+                  onTap: () async {
+                    await Navigator.push(
+                      // ← await
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => BlocProvider(
+                          create: (_) => ChatCubit(
+                            ChatRepository(DioClient()),
+                            WebsocketService(DioClient()),
+                          ),
+                          child: ChatScreen(
+                            email: widget.currentUserEmail,
+                            currentUserId: widget.currentUserId,
+                            otherUserId: user.id,
+                            otherUserEmail: user.email,
                           ),
                         ),
-                      )
-                    : null,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BlocProvider(
-                        create: (_) => ChatCubit(
-                          ChatRepository(DioClient()),
-                          WebsocketService(DioClient()),
-                        ),
-                        child: ChatScreen(
-                          email: widget.currentUserEmail,
-                          currentUserId: widget.currentUserId,
-                          otherUserId: user.id,
-                          otherUserEmail: user.email,
-                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
+                    );
+                    // ← بعد ما ترجع، حدّث الـ list
+                    setState(() {
+                      _future = _loadData();
+                    });
+                  },
+                );
+              },
+            ),
           );
         },
       ),
