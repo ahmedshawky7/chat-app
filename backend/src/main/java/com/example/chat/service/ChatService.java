@@ -46,7 +46,7 @@ public class ChatService {
                 message.getId(),
                 message.getContent(),
                 sender.getId(),
-                sender.getUsername(),
+                sender.getDisplayName(),
                 receiver.getId(),
                 message.getTimestamp(),
                 message.isRead());
@@ -60,7 +60,7 @@ public class ChatService {
                         message.getId(),
                         message.getContent(),
                         message.getSender().getId(),
-                        message.getSender().getUsername(),
+                        message.getSender().getDisplayName(),
                         message.getReceiver().getId(),
                         message.getTimestamp(),
                         message.isRead()))
@@ -108,7 +108,7 @@ public class ChatService {
     public List<UserResponse> getAllUsersExcept(Long currentUserId) {
         return userRepository.findAllExcept(currentUserId)
                 .stream()
-                .map(u -> new UserResponse(u.getId(), u.getUsername(), u.getEmail()))
+                .map(u -> new UserResponse(u.getId(), u.getDisplayName(), u.getEmail()))
                 .toList();
     }
 

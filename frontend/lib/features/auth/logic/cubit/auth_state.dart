@@ -21,11 +21,12 @@ class AuthLoading extends AuthState {
 class AuthSuccess extends AuthState {
   final String token;
   final String email;
+  final String username;
   final int id;
-  const AuthSuccess(this.token, this.email, this.id);
+  const AuthSuccess(this.token, this.email, this.username, this.id);
 
   @override
-  List<Object?> get props => [token, email, id];
+  List<Object?> get props => [token, email, username, id];
 }
 // 4. حالة الفشل (Error)
 class AuthError extends AuthState {

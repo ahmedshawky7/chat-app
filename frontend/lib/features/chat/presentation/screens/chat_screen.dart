@@ -8,14 +8,16 @@ import 'package:frontend_app/features/chat/logic/cubit/chat_state.dart';
 class ChatScreen extends StatefulWidget {
   final String email;
   final int currentUserId;
-  final int otherUserId; // ← جديد
-  final String otherUserEmail;
+  final String currentUsername; // ← جديد
+  final int otherUserId;
+  final String otherUsername; // ← بدل otherUserEmail
   const ChatScreen({
     super.key,
     required this.email,
     required this.currentUserId,
-    required this.otherUserId, // ← جديد
-    required this.otherUserEmail, // ← جديد
+    required this.currentUsername, // ← جديد
+    required this.otherUserId,
+    required this.otherUsername, // ← جديد
   });
 
   @override
@@ -25,6 +27,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
@@ -49,6 +52,19 @@ class _ChatScreenState extends State<ChatScreen> {
     return '$hour:$minute';
   }
 
+  String _formatDate(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final messageDate = DateTime(dt.year, dt.month, dt.day);
+    final difference = today.difference(messageDate).inDays;
+
+    if (difference == 0) return 'Today';
+    if (difference == 1) return 'Yesterday';
+    if (difference < 7) return '$difference days ago';
+
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -63,7 +79,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.otherUserEmail),
+        title: Text(widget.otherUsername),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -87,7 +103,6 @@ class _ChatScreenState extends State<ChatScreen> {
                 .showSnackBar(SnackBar(content: Text(state.message)));
           }
           if (state is ChatLoaded) {
-            // جدول الـ scroll بعد ما الـ widget يبني
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _scrollToBottom();
             });
@@ -98,6 +113,47 @@ class _ChatScreenState extends State<ChatScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is ChatLoaded) {
+            // ============ Empty State ============
+            if (state.messages.isEmpty) {
+              return Column(
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 80,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No messages yet',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Say hi to ${widget.otherUsername}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  _buildMessageInput(context),
+                ],
+              );
+            }
+
+            // ============ Messages List ============
             return Column(
               children: [
                 Expanded(
@@ -108,53 +164,147 @@ class _ChatScreenState extends State<ChatScreen> {
                     itemBuilder: (context, index) {
                       final message = state.messages[index];
                       final isMine = message.senderId == widget.currentUserId;
-                      return Align(
-                        alignment: isMine
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isMine ? Colors.blue[200] : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(message.content),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _formatTime(message.timestamp),
+
+                      // هل نضيف date separator؟
+                      bool showDateSeparator = false;
+                      if (index == 0) {
+                        showDateSeparator = true;
+                      } else {
+                        final prevMessage = state.messages[index - 1];
+                        final prevDate = DateTime(
+                          prevMessage.timestamp.year,
+                          prevMessage.timestamp.month,
+                          prevMessage.timestamp.day,
+                        );
+                        final currDate = DateTime(
+                          message.timestamp.year,
+                          message.timestamp.month,
+                          message.timestamp.day,
+                        );
+                        if (prevDate != currDate) {
+                          showDateSeparator = true;
+                        }
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // ============ Date Separator ============
+                          if (showDateSeparator)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    _formatDate(message.timestamp),
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       color: Colors.grey[700],
                                     ),
                                   ),
-                                  // ← جديد: علامة الصح (بس لو الرسالة مني)
-                                  if (isMine) ...[
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      message.isRead
-                                          ? Icons.done_all
-                                          : Icons.done,
-                                      size: 14,
-                                      color: message.isRead
-                                          ? Colors.blue
-                                          : Colors.grey[700],
-                                    ),
-                                  ],
-                                ],
+                                ),
                               ),
-                            ],
+                            ),
+
+                          // ============ Message Row ============
+                          Align(
+                            alignment: isMine
+                                ? Alignment.centerRight
+                                : Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Avatar (بس لو الرسالة مش بتاعتي)
+                                if (!isMine)
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 6),
+                                    child: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor:
+                                          Colors.primaries[message.senderId %
+                                              Colors.primaries.length],
+                                      child: Text(
+                                        message.senderUsername.isNotEmpty
+                                            ? message.senderUsername[0]
+                                                  .toUpperCase()
+                                            : '?',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                // ============ Message Bubble ============
+                                Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isMine
+                                        ? Colors.blue[200]
+                                        : Colors.grey[300],
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(12),
+                                      topRight: const Radius.circular(12),
+                                      bottomLeft: isMine
+                                          ? const Radius.circular(12)
+                                          : Radius.zero,
+                                      bottomRight: isMine
+                                          ? Radius.zero
+                                          : const Radius.circular(12),
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(message.content),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            _formatTime(message.timestamp),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                          if (isMine) ...[
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              message.isRead
+                                                  ? Icons.done_all
+                                                  : Icons.done,
+                                              size: 14,
+                                              color: message.isRead
+                                                  ? Colors.blue
+                                                  : Colors.grey[700],
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       );
                     },
                   ),

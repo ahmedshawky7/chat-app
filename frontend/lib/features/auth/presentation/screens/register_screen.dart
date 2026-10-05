@@ -41,6 +41,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 builder: (_) => UserListScreen(
                   currentUserId: state.id,
                   currentUserEmail: state.email,
+                  currentUsername: state.username,
                 ),
               ),
             );

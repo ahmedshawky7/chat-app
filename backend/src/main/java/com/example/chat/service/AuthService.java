@@ -47,7 +47,7 @@ public class AuthService {
         userRepository.save(user);
 
         var jwtToken = jwtService.generateToken(user);
-        return new AuthResponse(jwtToken, user.getEmail(), user.getId());
+        return new AuthResponse(jwtToken, user.getEmail(), user.getDisplayName(), user.getId());
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -58,7 +58,7 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
         var jwtToken = jwtService.generateToken(user);
-        return new AuthResponse(jwtToken, user.getEmail(), user.getId());
+        return new AuthResponse(jwtToken, user.getEmail(), user.getDisplayName(), user.getId());
     }
 }
     

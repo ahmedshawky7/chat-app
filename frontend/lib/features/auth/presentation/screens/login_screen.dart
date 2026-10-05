@@ -35,14 +35,15 @@ class _LoginScreenState extends State<LoginScreen> {
           }
           if (state is AuthSuccess) {
             Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (_) => UserListScreen(
-      currentUserId: state.id,
-      currentUserEmail: state.email,
-    ),
-  ),
-);
+              context,
+              MaterialPageRoute(
+                builder: (_) => UserListScreen(
+                  currentUserId: state.id,
+                  currentUserEmail: state.email,
+                  currentUsername: state.username,
+                ),
+              ),
+            );
           }
         },
         builder: (context, state) {

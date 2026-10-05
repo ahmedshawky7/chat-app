@@ -12,10 +12,12 @@ import 'package:frontend_app/features/chat/presentation/screens/chat_screen.dart
 class UserListScreen extends StatefulWidget {
   final int currentUserId;
   final String currentUserEmail;
+  final String currentUsername;
   const UserListScreen({
     super.key,
     required this.currentUserId,
     required this.currentUserEmail,
+    required this.currentUsername,
   });
 
   @override
@@ -32,13 +34,13 @@ class _UserListScreenState extends State<UserListScreen> {
     _future = _loadData();
   }
 
- Future<(List<UserModel>, Map<int, int>)> _loadData() async {
-  final results = await Future.wait([
-    _chatRepository.getAllUsers(),
-    _chatRepository.getUnreadCounts(),
-  ]);
-  return (results[0] as List<UserModel>, results[1] as Map<int, int>);
-}
+  Future<(List<UserModel>, Map<int, int>)> _loadData() async {
+    final results = await Future.wait([
+      _chatRepository.getAllUsers(),
+      _chatRepository.getUnreadCounts(),
+    ]);
+    return (results[0] as List<UserModel>, results[1] as Map<int, int>);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -130,8 +132,10 @@ class _UserListScreenState extends State<UserListScreen> {
                           child: ChatScreen(
                             email: widget.currentUserEmail,
                             currentUserId: widget.currentUserId,
+                            currentUsername: widget.currentUsername, // ← جديد
                             otherUserId: user.id,
-                            otherUserEmail: user.email,
+                            otherUsername:
+                                user.username, // ← بدل otherUserEmail
                           ),
                         ),
                       ),

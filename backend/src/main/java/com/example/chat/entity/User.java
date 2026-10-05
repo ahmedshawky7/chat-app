@@ -50,6 +50,10 @@ public class User implements UserDetails {
         return email;
     }
 
+    public String getDisplayName() {
+        return this.username; // ← بيوصل للحقل الأصلي
+    }
+
     // ===== UserDetails Methods =====
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

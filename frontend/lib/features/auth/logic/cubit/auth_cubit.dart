@@ -16,7 +16,7 @@ Future<void> register({required String username, required String email, required
         password: password,
       );
       final response = await authRepository.register(request);
-      emit(AuthSuccess(response.token, response.email, response.id));
+      emit(AuthSuccess(response.token, response.email, response.username, response.id));
     } catch (e) {
       emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
     }
@@ -27,7 +27,7 @@ Future<void> register({required String username, required String email, required
     try {
       final request = LoginRequestModel(email: email, password: password);
       final response = await authRepository.login(request);
-      emit(AuthSuccess(response.token, response.email, response.id));
+      emit(AuthSuccess(response.token, response.email, response.username, response.id));
     } catch (e) {
       emit(AuthError(e.toString().replaceFirst('Exception: ', '')));
     }
