@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.chat.dto.AuthResponse;
 import com.example.chat.dto.LoginRequest;
+import com.example.chat.dto.RefreshTokenRequest;
 import com.example.chat.dto.RegisterRequest;
 import com.example.chat.service.AuthService;
 
@@ -30,6 +31,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(
+            @Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refreshToken(request.refreshToken()));
     }
 
 }

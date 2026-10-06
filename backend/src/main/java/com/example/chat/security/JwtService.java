@@ -1,6 +1,7 @@
 package com.example.chat.security;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
@@ -19,51 +20,59 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
     private final SecretKey secretKey;
-    private final long jwtExpiration;
+    private final long accessTokenExpiration;
+    private final long refreshTokenExpiration;
 
-    // Constructor:
     public JwtService(
             @Value("${application.security.jwt.secret-key}") String secretKeyString,
-            @Value("${application.security.jwt.expiration}") long jwtExpiration) {
+            @Value("${application.security.jwt.access-token-expiration}") long accessTokenExpiration,
+            @Value("${application.security.jwt.refresh-token-expiration}") long refreshTokenExpiration) {
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKeyString));
-        this.jwtExpiration = jwtExpiration;
+        this.accessTokenExpiration = accessTokenExpiration;
+        this.refreshTokenExpiration = refreshTokenExpiration;
     }
 
+    // ============ Access Token ============
     public String generateToken(User user) {
+        return buildToken(new HashMap<>(), user, accessTokenExpiration);
+    }
+
+    // ============ Refresh Token ============
+    public String generateRefreshToken(User user) {
+        return buildToken(new HashMap<>(), user, refreshTokenExpiration);
+    }
+
+    // ============ Helpers ============
+    private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails, long expiration) {
         var issuedAt = new Date(System.currentTimeMillis());
-        var expiration = new Date(System.currentTimeMillis() + jwtExpiration);
-        return Jwts.builder().subject(user.getEmail()).claim("role", user.getRole().name()).issuedAt(issuedAt)
-                .expiration(expiration).signWith(secretKey).compact();
-    }
-
-    public String extractUsername(String token) {
-        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getSubject();
-    }
-
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        var username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
-    }
-
-    private boolean isTokenExpired(String token) {
-        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().getExpiration()
-                .before(new Date(System.currentTimeMillis()));
-    }
-
-    private Claims extractAllClaims(String token) {
-        return Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
-    }
-
-    private String buildToken(Map<String, Object> extraClaims, UserDetails userDetails) {
-        var issuedAt = new Date(System.currentTimeMillis());
-        var expiration = new Date(System.currentTimeMillis() + jwtExpiration);
+        var expirationDate = new Date(System.currentTimeMillis() + expiration);
         return Jwts.builder()
                 .claims(extraClaims)
                 .subject(userDetails.getUsername())
                 .issuedAt(issuedAt)
-                .expiration(expiration)
+                .expiration(expirationDate)
                 .signWith(secretKey)
                 .compact();
     }
 
+    public String extractUsername(String token) {
+        return extractAllClaims(token).getSubject();
+    }
+
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        final String username = extractUsername(token);
+        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+    }
+
+    private boolean isTokenExpired(String token) {
+        return extractAllClaims(token).getExpiration().before(new Date());
+    }
+
+    private Claims extractAllClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
 }

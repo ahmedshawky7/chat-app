@@ -24,60 +24,65 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/chat")
 public class ChatController {
-   private final ChatService chatService;
-private final SimpMessagingTemplate messagingTemplate;
+    private final ChatService chatService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-public ChatController(ChatService chatService, SimpMessagingTemplate messagingTemplate) {
-    this.chatService = chatService;
-    this.messagingTemplate = messagingTemplate;
-}
+    public ChatController(ChatService chatService, SimpMessagingTemplate messagingTemplate) {
+        this.chatService = chatService;
+        this.messagingTemplate = messagingTemplate;
+    }
 
- @PostMapping("/send")
-public ResponseEntity<MessageResponse> sendMessage(
-        @Valid @RequestBody SendMessageRequest request,
-        Authentication authentication) {
-    String email = authentication.getName();
-    return ResponseEntity.ok(chatService.sendMessageByEmail(email, request));
-}
+    @PostMapping("/send")
+    public ResponseEntity<MessageResponse> sendMessage(
+            @Valid @RequestBody SendMessageRequest request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(chatService.sendMessageByEmail(email, request));
+    }
 
     @GetMapping("/conversation/{otherUserId}")
-public ResponseEntity<List<MessageResponse>> getConversation(
-        @PathVariable Long otherUserId,
-        Authentication authentication) {
-    String email = authentication.getName();
-    return ResponseEntity.ok(chatService.getConversationByEmail(email, otherUserId));
-}
-
-@PostMapping("/read/{otherUserId}")
-public ResponseEntity<Void> markAsRead(
-        @PathVariable Long otherUserId,
-        Authentication authentication) {
-    
-    String email = authentication.getName();
-    List<Long> readMessageIds = chatService.markAsReadByEmail(email, otherUserId);
-    
-    // لو فيه رسايل اتعلمت كمقروءة، نبلّغ المرسل
-    if (!readMessageIds.isEmpty()) {
-        String senderEmail = chatService.getUserEmailById(otherUserId);
-        ReadReceiptEvent event = new ReadReceiptEvent(
-            // الحقل ده هنحتاجه عشان نعرف مين القارئ
-            // محتاج نجيب الـ userId الحالي (اللي قرأ)
-            chatService.getUserIdByEmail(email),
-            readMessageIds
-        );
-        messagingTemplate.convertAndSendToUser(senderEmail, "/queue/reads", event);
+    public ResponseEntity<List<MessageResponse>> getConversation(
+            @PathVariable Long otherUserId,
+            Authentication authentication) {
+        String email = authentication.getName();
+        return ResponseEntity.ok(chatService.getConversationByEmail(email, otherUserId));
     }
-    
-    return ResponseEntity.noContent().build();
-}
 
-@GetMapping("/users")
-public ResponseEntity<List<UserResponse>> getAllUsers(Authentication authentication) {
-    return ResponseEntity.ok(chatService.getAllUsersExceptByEmail(authentication.getName()));
-}
-@GetMapping("/unread-counts")
-public ResponseEntity<Map<Long, Long>> getUnreadCounts(Authentication authentication) {
-    return ResponseEntity.ok(chatService.getUnreadCountsByEmail(authentication.getName()));
-}
+    @PostMapping("/read/{otherUserId}")
+    public ResponseEntity<Void> markAsRead(
+            @PathVariable Long otherUserId,
+            Authentication authentication) {
+
+        String email = authentication.getName();
+        List<Long> readMessageIds = chatService.markAsReadByEmail(email, otherUserId);
+
+        // لو فيه رسايل اتعلمت كمقروءة، نبلّغ المرسل
+        if (!readMessageIds.isEmpty()) {
+            String senderEmail = chatService.getUserEmailById(otherUserId);
+            ReadReceiptEvent event = new ReadReceiptEvent(
+                    // الحقل ده هنحتاجه عشان نعرف مين القارئ
+                    // محتاج نجيب الـ userId الحالي (اللي قرأ)
+                    chatService.getUserIdByEmail(email),
+                    readMessageIds);
+            messagingTemplate.convertAndSendToUser(senderEmail, "/queue/reads", event);
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<List<UserResponse>> getAllUsers(Authentication authentication) {
+        return ResponseEntity.ok(chatService.getAllUsersExceptByEmail(authentication.getName()));
+    }
+
+    @GetMapping("/unread-counts")
+    public ResponseEntity<Map<Long, Long>> getUnreadCounts(Authentication authentication) {
+        return ResponseEntity.ok(chatService.getUnreadCountsByEmail(authentication.getName()));
+    }
+
+    @GetMapping("/unread-total")
+    public ResponseEntity<Long> getUnreadTotal(Authentication authentication) {
+        return ResponseEntity.ok(chatService.getUnreadTotalByEmail(authentication.getName()));
+    }
 
 }

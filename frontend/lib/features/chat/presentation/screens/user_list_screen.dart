@@ -48,6 +48,20 @@ class _UserListScreenState extends State<UserListScreen> {
       appBar: AppBar(
         title: const Text('Users'),
         actions: [
+          FutureBuilder<int>(
+            future: _chatRepository.getUnreadTotal(),
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              if (count == 0) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Badge(
+                  label: Text(count.toString()),
+                  child: const Icon(Icons.notifications),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {

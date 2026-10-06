@@ -31,12 +31,21 @@ class ChatCubit extends Cubit<ChatState> {
     if (state is ChatLoaded) {
       final currentState = state as ChatLoaded;
       final newMessage = MessageModel.fromJson(data);
+
+      // ← فلتر: بس الرسايل بيني وبين otherUser (في الاتجاهين)
+      final isFromOther = newMessage.senderId == currentState.otherUserId;
+      final isToOther = newMessage.receiverId == currentState.otherUserId;
+
+      if (!isFromOther && !isToOther) {
+        return; // مش من المحادثة دي، متضفهاش
+      }
+
       final updatedMessages = List<MessageModel>.from(currentState.messages)
         ..add(newMessage);
       emit(ChatLoaded(updatedMessages, currentState.otherUserId));
 
       // ← علّم كمقروءة فقط لو الرسالة جاية من الطرف التاني
-      if (newMessage.senderId == currentState.otherUserId) {
+      if (isFromOther) {
         chatRepository.markAsRead(currentState.otherUserId);
       }
     }
@@ -73,5 +82,4 @@ class ChatCubit extends Cubit<ChatState> {
     websocketService.disconnect();
     return super.close();
   }
-
 }

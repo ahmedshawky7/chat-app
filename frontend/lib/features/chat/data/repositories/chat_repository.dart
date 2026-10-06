@@ -85,4 +85,20 @@ class ChatRepository {
       throw Exception(message);
     }
   }
+
+  Future<int> getUnreadTotal() async {
+    final token = await TokenStorage.getToken();
+    if (token == null) throw Exception('No token found');
+    try {
+      final response = await dioClient.dio.get(
+        '/chat/unread-total',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      return response.data as int;
+    } on DioException catch (e) {
+      final message =
+          e.response?.data?['message'] ?? e.message ?? 'Unknown error';
+      throw Exception(message);
+    }
+  }
 }
