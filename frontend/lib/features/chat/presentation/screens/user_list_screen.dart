@@ -65,7 +65,7 @@ class _UserListScreenState extends State<UserListScreen> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await TokenStorage.deleteToken();
+              await TokenStorage.clearTokens();
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,

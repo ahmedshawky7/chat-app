@@ -25,7 +25,7 @@ class WebsocketService {
       return;
     }
 
-    final token = await TokenStorage.getToken();
+    final token = await TokenStorage.getAccessToken();
     if (token == null) {
       throw Exception('No token found');
     }

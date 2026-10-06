@@ -18,7 +18,8 @@ class AuthRepository {
         data: request.toJson(),
       );
       final authResponse = AuthResponseModel.fromJson(response.data);
-      await TokenStorage.saveToken(authResponse.token);
+      await TokenStorage.saveAccessToken(authResponse.token);
+      await TokenStorage.saveRefreshToken(authResponse.refreshToken);
       return authResponse;
     } on DioException catch (e) {
       final message =
@@ -34,7 +35,8 @@ class AuthRepository {
         data: request.toJson(),
       );
       final authResponse = AuthResponseModel.fromJson(response.data);
-      await TokenStorage.saveToken(authResponse.token);
+      await TokenStorage.saveAccessToken(authResponse.token);
+      await TokenStorage.saveRefreshToken(authResponse.refreshToken);
       return authResponse;
     } on DioException catch (e) {
       final message =
@@ -42,5 +44,4 @@ class AuthRepository {
       throw Exception(message);
     }
   }
-  }
-
+}

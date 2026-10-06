@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.servlet.FilterChain;
@@ -28,41 +29,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-
-        logger.debug("JWT Filter called for: {} {}", request.getMethod(), request.getRequestURI());
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
-        logger.debug("Authorization header: {}", authHeader);
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.debug("No Bearer token found, skipping...");
             filterChain.doFilter(request, response);
             return;
         }
 
-        String jwt = authHeader.substring(7);
-        String userEmail = jwtService.extractUsername(jwt);
-        logger.debug("Extracted email: {}", userEmail);
+        try {
+            String jwt = authHeader.substring(7);
+            String userEmail = jwtService.extractUsername(jwt);
 
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-            logger.debug("User loaded: {}", userDetails.getUsername());
-
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                logger.debug("Token is valid, setting authentication");
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-                logger.debug("Authentication set: {}", SecurityContextHolder.getContext().getAuthentication());
-            } else {
-                logger.debug("Token is NOT valid");
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
-        } else {
-            logger.debug("userEmail is null or context already has auth: {}",
-                    SecurityContextHolder.getContext().getAuthentication());
+        } catch (Exception e) {
+            // التوكن غلط أو منتهي — نتجاهل ونكمل (Spring Security هيرجع 401)
+            logger.debug("JWT validation failed: {}", e.getMessage());
         }
 
         filterChain.doFilter(request, response);

@@ -85,7 +85,7 @@ class _ChatScreenState extends State<ChatScreen> {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               context.read<ChatCubit>().leaveChat();
-              await TokenStorage.deleteToken();
+              await TokenStorage.clearTokens();
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
